@@ -110,7 +110,7 @@ export default function Home() {
         title: "Edition updated!",
         description: `Edition for book "${selectedBookForEdit.title}" has been updated to ${values.edition}.`,
       });
-      setEditForm.reset();
+      editForm.reset();
       setEditOpen(false);
     } catch (error) {
       toast({
@@ -140,7 +140,7 @@ export default function Home() {
 
   const handleOpenEdit = (book: Book) => {
     setSelectedBookForEdit(book);
-    setEditForm.setValue("edition", book.edition);
+    editForm.setValue("edition", book.edition);
     setEditOpen(true);
   };
 
@@ -331,3 +331,4 @@ export default function Home() {
     </div>
   );
 }
+

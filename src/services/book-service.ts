@@ -97,3 +97,4 @@ export async function insertBook(book: Book): Promise<boolean> {
   mockBooks.push(book);
   return true;
 }
+
