@@ -14,6 +14,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Textarea } from '@/components/ui/textarea';
+import { generateBookSummary } from '@/ai/flows/book-summary';
 
 const bookSchema = z.object({
   isbn: z.string().min(1, { message: "ISBN is required." }),
