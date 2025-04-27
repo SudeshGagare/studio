@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Book, getAllBooks, insertBook, deleteBook, updateBookEdition } from '@/services/book-service';
+import { Book, getAllBooks, insertBook, deleteBook, updateBookEdition, getBookByISBN } from '@/services/book-service';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -41,6 +41,7 @@ export default function Home() {
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [selectedBookForEdit, setSelectedBookForEdit] = useState<Book | null>(null);
+  const [searchIsbn, setSearchIsbn] = useState("");
 
   const form = useForm<z.infer<typeof bookSchema>>({
     resolver: zodResolver(bookSchema),
@@ -144,6 +145,28 @@ export default function Home() {
     setEditOpen(true);
   };
 
+  const handleSearchBook = async () => {
+    if (searchIsbn) {
+      const book = await getBookByISBN(searchIsbn);
+      if (book) {
+        setSelectedBook(book);
+        try {
+          const summaryData = await generateBookSummary({ title: book.title, author: book.author });
+          setSummary(summaryData?.summary || 'No summary found.');
+        } catch (error) {
+          setSummary('Failed to load summary.');
+        }
+      } else {
+        setSelectedBook(null);
+        setSummary(null);
+        toast({
+          title: "Book not found!",
+          description: `Book with ISBN "${searchIsbn}" not found.`,
+        });
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-secondary p-4">
       <header className="mb-8">
@@ -241,6 +264,18 @@ export default function Home() {
         </Dialog>
       </section>
 
+      <section className="mb-8 flex gap-2">
+        <Input
+          type="text"
+          placeholder="Search by ISBN"
+          value={searchIsbn}
+          onChange={(e) => setSearchIsbn(e.target.value)}
+        />
+        <Button onClick={handleSearchBook}>
+          <Search className="mr-2 h-4 w-4" /> Search Book
+        </Button>
+      </section>
+
       <section>
         <h2 className="mb-4 text-xl font-semibold text-primary">Book List</h2>
         <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
@@ -331,4 +366,3 @@ export default function Home() {
     </div>
   );
 }
-
