@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Book, getAllBooks, insertBook, deleteBook, updateBookEdition } from '@/services/book-service';
-import { generateBookSummary } from '@/ai/flows/book-summary';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -27,12 +26,21 @@ const bookSchema = z.object({
   ),
 });
 
+const editionSchema = z.object({
+  edition: z.preprocess(
+    (a) => parseInt(String(a), 10),
+    z.number().min(1, { message: "Edition must be at least 1." })
+  ),
+});
+
 export default function Home() {
   const [books, setBooks] = useState<Book[]>([]);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedBookForEdit, setSelectedBookForEdit] = useState<Book | null>(null);
 
   const form = useForm<z.infer<typeof bookSchema>>({
     resolver: zodResolver(bookSchema),
@@ -41,6 +49,13 @@ export default function Home() {
       title: "",
       author: "",
       coverImageUrl: "",
+      edition: 1,
+    },
+  });
+
+  const editForm = useForm<z.infer<typeof editionSchema>>({
+    resolver: zodResolver(editionSchema),
+    defaultValues: {
       edition: 1,
     },
   });
@@ -86,14 +101,17 @@ export default function Home() {
     }
   };
 
-  const handleUpdateEdition = async (isbn: string, newEdition: number) => {
+  const onEditSubmit = async (values: z.infer<typeof editionSchema>) => {
+    if (!selectedBookForEdit) return;
     try {
-      await updateBookEdition(isbn, newEdition);
+      await updateBookEdition(selectedBookForEdit.isbn, values.edition);
       loadBooks();
       toast({
         title: "Edition updated!",
-        description: `Edition for book with ISBN "${isbn}" has been updated to ${newEdition}.`,
+        description: `Edition for book "${selectedBookForEdit.title}" has been updated to ${values.edition}.`,
       });
+      setEditForm.reset();
+      setEditOpen(false);
     } catch (error) {
       toast({
         variant: "destructive",
@@ -118,6 +136,12 @@ export default function Home() {
         description: "Something went wrong. Please try again.",
       });
     }
+  };
+
+  const handleOpenEdit = (book: Book) => {
+    setSelectedBookForEdit(book);
+    setEditForm.setValue("edition", book.edition);
+    setEditOpen(true);
   };
 
   return (
@@ -234,7 +258,7 @@ export default function Home() {
                   <Search className="mr-2 h-4 w-4" /> View
                 </Button>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="icon" onClick={() => handleUpdateEdition(book.isbn, book.edition + 1)}>
+                  <Button variant="outline" size="icon" onClick={() => handleOpenEdit(book)}>
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button variant="destructive" size="icon" onClick={() => handleDeleteBook(book.isbn)}>
@@ -273,6 +297,37 @@ export default function Home() {
           </Card>
         </section>
       )}
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Edition</DialogTitle>
+            <DialogDescription>
+              Enter the new edition for the book.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="edition"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Edition</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit">Update Edition</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
