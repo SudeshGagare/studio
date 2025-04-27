@@ -127,6 +127,8 @@ export default function Home() {
     try {
       await deleteBook(isbn);
       loadBooks();
+      setSelectedBook(null);
+      setSummary(null);
       toast({
         title: "Book deleted!",
         description: `Book with ISBN "${isbn}" has been deleted.`,
@@ -148,21 +150,29 @@ export default function Home() {
 
   const handleSearchBook = async () => {
     if (searchIsbn) {
-      const book = await getBookByISBN(searchIsbn);
-      if (book) {
-        setSelectedBook(book);
-        try {
-          const summaryData = await generateBookSummary({ title: book.title, author: book.author });
-          setSummary(summaryData?.summary || 'No summary found.');
-        } catch (error) {
-          setSummary('Failed to load summary.');
+      try {
+        const book = await getBookByISBN(searchIsbn);
+        if (book) {
+          setSelectedBook(book);
+          try {
+            const summaryData = await generateBookSummary({ title: book.title, author: book.author });
+            setSummary(summaryData?.summary || 'No summary found.');
+          } catch (error) {
+            setSummary('Failed to load summary.');
+          }
+        } else {
+          setSelectedBook(null);
+          setSummary(null);
+          toast({
+            title: "Book not found!",
+            description: `Book with ISBN "${searchIsbn}" not found.`,
+          });
         }
-      } else {
-        setSelectedBook(null);
-        setSummary(null);
+      } catch (error) {
         toast({
-          title: "Book not found!",
-          description: `Book with ISBN "${searchIsbn}" not found.`,
+          variant: "destructive",
+          title: "Error searching book!",
+          description: "Something went wrong. Please try again.",
         });
       }
     }
@@ -367,4 +377,5 @@ export default function Home() {
     </div>
   );
 }
+
 
